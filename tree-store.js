@@ -275,7 +275,7 @@ export const SETTING_DEFAULTS = {
     bookDescriptions: {},
     connectionProfile: null,
     sidecarTemperature: 0.2,
-    sidecarMaxTokens: 2048,
+    sidecarMaxTokens: 8192,
     disabledTools: {},
     searchMode: 'traversal',
     collapsedDepth: 2,

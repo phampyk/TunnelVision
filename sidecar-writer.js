@@ -128,7 +128,12 @@ function findEntryByUid(entries, uid) {
 // ─── Chat Context ────────────────────────────────────────────────
 
 /**
- * Extract recent chat messages including the latest response.
+ * Extract recent chat messages for the sidecar writer.
+ * The latest AI response is excluded — the sidecar should only record facts
+ * established by the USER, not potentially hallucinated AI roleplay content.
+ * We include up to maxMessages of prior context (user + character turns) so the
+ * sidecar understands the conversation flow, but the actual "new information"
+ * it should act on comes only from the user's latest message(s).
  * @param {number} maxMessages
  * @returns {string}
  */
@@ -137,10 +142,22 @@ function extractRecentChat(maxMessages = 15) {
     const chat = context.chat;
     if (!chat || chat.length === 0) return '';
 
-    const lines = [];
-    const start = Math.max(0, chat.length - maxMessages);
+    // Find the last non-system message — if it's from the character, exclude it
+    let end = chat.length;
+    for (let i = chat.length - 1; i >= 0; i--) {
+        if (chat[i].is_system) continue;
+        if (!chat[i].is_user) {
+            end = i; // exclude this AI response
+        }
+        break;
+    }
 
-    for (let i = start; i < chat.length; i++) {
+    if (end === 0) return '';
+
+    const lines = [];
+    const start = Math.max(0, end - maxMessages);
+
+    for (let i = start; i < end; i++) {
         const msg = chat[i];
         if (msg.is_system) continue;
         const role = msg.is_user ? 'User' : 'Character';
@@ -168,6 +185,7 @@ Rules:
 - "reorganize" moves entries between tree nodes or creates new categories for better organization
 - "split" divides one entry that covers multiple topics into two focused entries
 - Only create entries for significant, persistent information — not ephemeral dialogue
+- You are seeing conversation HISTORY only (the AI's latest response is excluded). Record facts the USER has established or confirmed, not speculative/fictional content
 - Focus on: character development, relationship changes, plot events, world-building facts, status changes
 - If nothing significant happened, return: {"reasoning": "No significant events to record", "remember": [], "update": [], "merge": [], "summarize": [], "forget": [], "reorganize": [], "split": []}
 
@@ -184,6 +202,13 @@ CRITICAL — Granularity:
 - A single conversation turn should rarely produce more than 1-2 entries
 - Do NOT create entries for: greetings, minor dialogue, restating known facts, ephemeral actions
 - Use "split" only when an entry has grown to cover genuinely unrelated topics
+
+CRITICAL — Updates must be surgical:
+- When updating an entry, your "content" field REPLACES the entire existing content
+- You MUST include ALL existing information from the entry that is still valid, plus your additions/changes
+- NEVER write a partial update that drops existing facts — that destroys data
+- If you only need to change the title or keys, omit the "content" field entirely
+- Keep your response concise — summarize rather than rewrite verbose entries word-for-word
 
 CRITICAL — Housekeeping:
 - Use "forget" sparingly — only when information is definitively wrong or permanently irrelevant

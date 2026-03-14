@@ -393,11 +393,16 @@ async function onGenerationStarted(type, opts, dryRun) {
  * Post-generation handler: run sidecar writer if enabled.
  * Fires after the chat model's response is received (MESSAGE_RECEIVED).
  */
-async function onMessageReceived() {
+async function onMessageReceived(_messageId, type) {
     // Clear generation guards BEFORE the sidecar writer runs, so that lorebook
     // writes triggered by the writer do not get blocked by the generation guard.
     _generationInProgress = false;
     window.TunnelVision_isRecursiveToolPass = false;
+
+    // Never run sidecar writer on swipes, continues, first messages, or non-generation events.
+    // Only run on normal 'normal' generation completions.
+    const skipTypes = ['swipe', 'continue', 'appendFinal', 'first_message', 'command', 'extension'];
+    if (skipTypes.includes(type)) return;
 
     const settings = getSettings();
     if (!settings.sidecarPostGenWriter || settings.globalEnabled === false) return;
