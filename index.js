@@ -101,6 +101,11 @@ async function init() {
         console.warn('[TunnelVision] WORLDINFO_ENTRIES_LOADED event not found, WI suppression disabled');
     }
 
+    // Track keyword-triggered entries when allowKeywordTriggers is on
+    if (event_types.WORLD_INFO_ACTIVATED) {
+        eventSource.on(event_types.WORLD_INFO_ACTIVATED, onWorldInfoActivatedForTracking);
+    }
+
     // Inject mandatory tool call instruction when enabled
     if (event_types.GENERATION_STARTED) {
         eventSource.on(event_types.GENERATION_STARTED, onGenerationStarted);
@@ -119,6 +124,7 @@ async function init() {
             console.debug('[TunnelVision] GENERATION_ENDED — clearing generation guards');
             _generationInProgress = false;
             _toolRecursionDepth = 0;
+            _keywordTriggeredUids.clear();
             window.TunnelVision_isRecursiveToolPass = false;
         });
     } else {
@@ -502,9 +508,20 @@ function injectConditionButton(entryEl, bookName, bookData) {
  * keywords would double-inject them into context.
  * @param {{ globalLore: Array, characterLore: Array, chatLore: Array, personaLore: Array }} data
  */
+/** UIDs of entries that were keyword-triggered this turn (when allowKeywordTriggers is on). */
+let _keywordTriggeredUids = new Set();
+
+/** Get the set of entry UIDs that were keyword-triggered this turn. */
+export function getKeywordTriggeredUids() {
+    return _keywordTriggeredUids;
+}
+
 function onWorldInfoEntriesLoaded(data) {
     const settings = getSettings();
     if (settings.globalEnabled === false) return;
+
+    // When keyword triggers are allowed, don't suppress — let WI work normally
+    if (settings.allowKeywordTriggers) return;
 
     const passthrough = settings.passthroughConstant !== false;
     let removed = 0;
@@ -530,6 +547,24 @@ function onWorldInfoEntriesLoaded(data) {
 
     if (removed > 0 || passed > 0) {
         console.log(`[TunnelVision] Suppressed ${removed} TV-managed entries from normal WI scanning` + (passed > 0 ? `, passed through ${passed} constant entries` : ''));
+    }
+}
+
+/**
+ * Track which entries were keyword-triggered so the Search tool can annotate them.
+ */
+function onWorldInfoActivatedForTracking(entryList) {
+    const settings = getSettings();
+    if (!settings.allowKeywordTriggers) return;
+
+    _keywordTriggeredUids.clear();
+    for (const entry of entryList) {
+        if (entry.world && isLorebookEnabled(entry.world) && entry.uid !== undefined) {
+            _keywordTriggeredUids.add(entry.uid);
+        }
+    }
+    if (_keywordTriggeredUids.size > 0) {
+        console.log(`[TunnelVision] ${_keywordTriggeredUids.size} TV-managed entries also keyword-triggered this turn`);
     }
 }
 

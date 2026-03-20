@@ -163,6 +163,7 @@ export function bindUIEvents() {
     $('#tv_auto_summary_interval').on('change', onAutoSummaryIntervalChange);
     $('#tv_auto_hide_summarized').on('change', onAutoHideSummarizedToggle);
     $('#tv_passthrough_constant').on('change', onPassthroughConstantToggle);
+    $('#tv_allow_keyword_triggers').on('change', onAllowKeywordTriggersToggle);
 
     // Multi-book mode
     $('input[name="tv_multi_book_mode"]').on('change', onMultiBookModeChange);
@@ -302,6 +303,7 @@ export function refreshUI() {
     $('#tv_auto_summary_count').text(getAutoSummaryCount());
     $('#tv_auto_hide_summarized').prop('checked', settings.autoHideSummarized !== false);
     $('#tv_passthrough_constant').prop('checked', settings.passthroughConstant !== false);
+    $('#tv_allow_keyword_triggers').prop('checked', settings.allowKeywordTriggers === true);
 
     // Sync multi-book mode
     $(`input[name="tv_multi_book_mode"][value="${settings.multiBookMode || 'unified'}"]`).prop('checked', true);
@@ -886,6 +888,13 @@ function onPassthroughConstantToggle() {
     const enabled = $(this).prop('checked');
     const settings = getSettings();
     settings.passthroughConstant = enabled;
+    saveSettingsDebounced();
+}
+
+function onAllowKeywordTriggersToggle() {
+    const enabled = $(this).prop('checked');
+    const settings = getSettings();
+    settings.allowKeywordTriggers = enabled;
     saveSettingsDebounced();
 }
 

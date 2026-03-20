@@ -18,6 +18,7 @@ import {
     getSettings,
 } from '../tree-store.js';
 import { getReadableBooks } from '../tool-registry.js';
+import { getKeywordTriggeredUids } from '../index.js';
 
 /**
  * Build a UID→entry lookup map from lorebook data.
@@ -363,7 +364,9 @@ function pushResolvedEntries(results, seenEntries, bookName, uidMap, uids) {
         if (seenEntries.has(key)) continue;
         seenEntries.add(key);
         const title = entry.comment || entry.key?.[0] || `Entry #${uid}`;
-        results.push(`[Lorebook: ${bookName} | UID: ${uid} | Title: ${title}]\n${entry.content}`);
+        const triggered = getKeywordTriggeredUids().has(Number(uid));
+        const tag = triggered ? ' | ⚡ Already in context via keyword trigger' : '';
+        results.push(`[Lorebook: ${bookName} | UID: ${uid} | Title: ${title}${tag}]\n${entry.content}`);
     }
 }
 
@@ -389,7 +392,9 @@ async function buildEntryManifest(nodeId) {
             const title = entry.comment || entry.key?.[0] || `Entry #${uid}`;
             const keys = (entry.key || []).slice(0, 5).join(', ');
             const preview = (entry.content || '').substring(0, 120).replace(/\n/g, ' ');
-            lines.push(`  - [UID ${uid}] "${title}" (${bookName})${keys ? ` — keys: ${keys}` : ''}\n    ${preview}${entry.content.length > 120 ? '...' : ''}`);
+            const triggered = getKeywordTriggeredUids().has(Number(uid));
+            const tag = triggered ? ' ⚡already in context' : '';
+            lines.push(`  - [UID ${uid}] "${title}" (${bookName})${tag}${keys ? ` — keys: ${keys}` : ''}\n    ${preview}${entry.content.length > 120 ? '...' : ''}`);
         }
     };
 

@@ -305,6 +305,7 @@ export const SETTING_DEFAULTS = {
     stealthMode: false,
     autoHideSummarized: true,
     passthroughConstant: true,
+    allowKeywordTriggers: false,
     confirmTools: {},
     toolPromptOverrides: {},
     // Sidecar auto-retrieval (pre-gen)
