@@ -173,6 +173,12 @@ function resolveProfileConfig() {
     // for raw Bearer-token fetch() calls. Only fall back to the profile URL for
     // 'custom' or unknown providers where we have no built-in endpoint.
     let endpoint = info.endpoint || profile['api-url'] || null;
+    // ST stores session-based proxy URLs (e.g. /api/subscription/v1) that don't
+    // accept Bearer-token auth. Strip the /subscription segment for direct calls.
+    if (endpoint && endpoint.includes('/subscription/')) {
+        endpoint = endpoint.replace('/subscription/', '/');
+        console.debug(`[${MODULE_NAME}] Stripped /subscription from proxy URL for direct API call`);
+    }
     if (!info.endpoint && endpoint && info.format === 'openai' && !endpoint.endsWith('/chat/completions')) {
         endpoint = endpoint.replace(/\/+$/, '') + '/chat/completions';
     }
